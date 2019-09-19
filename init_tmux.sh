@@ -1,7 +1,5 @@
 #!/bin/bash
 
-SESSION="main"
-
 IFS_orig=${IFS}
 
 run_cmd()
@@ -64,9 +62,21 @@ init()
     tmux selectw -t 0
 }
 
+get_session_name()
+{
+    SESSION="main"
+
+    if head -n1 $CONFIG_FILE | grep -q '\[.*\]'; then
+        SESSION=`head -n1 $CONFIG_FILE | grep -o '\[.*\]'`
+
+        SESSION=${SESSION%]}
+        SESSION=${SESSION#[}
+    fi
+}
+
 get_config_file()
 {
-    for CONFIG_FILE in {$HOME,.}/{,.}init_tmux.config
+    for CONFIG_FILE in {.,$HOME}/{,.}init_tmux.config
     do
 	[ -f "$CONFIG_FILE" ] && return 0
     done
@@ -78,30 +88,46 @@ get_config()
 {
     get_config_file || return 1
 
+    get_session_name
+
+    if head -n1 $CONFIG_FILE | grep -q '\[.*\]'; then
+        sed '1d' $CONFIG_FILE | tr -s ' ' > /tmp/$CONFIG_FILE.$$
+    else
+        tr -s ' ' < $CONFIG_FILE > /tmp/$CONFIG_FILE.$$
+    fi
+
     IFS=$'\n'
     i=0
-    for w in `tr -s ' ' < $CONFIG_FILE | awk -F ' : ' '{print $1}'`
+    for w in `awk -F ' : ' '{print $1}' /tmp/$CONFIG_FILE.$$`
     do
         WINDOWS[$i]="$w"
         let i++
     done
 
     i=0
-    for l in `tr -s ' ' < $CONFIG_FILE | awk -F ' : ' '{print $2}'`
+    for l in `awk -F ' : ' '{print $2}' /tmp/$CONFIG_FILE.$$`
     do
         LAYOUT[$i]="$l"
         let i++
     done
 
     i=0
-    for c in `tr -s ' ' < $CONFIG_FILE | awk -F ' : ' '{print $3}'`
+    for c in `awk -F ' : ' '{print $3}' /tmp/$CONFIG_FILE.$$`
     do
         COMMAND[$i]="$c"
         let i++
     done
     IFS=${IFS_orig}
+
+    rm /tmp/$CONFIG_FILE.$$
 }
 
+
+get_config
+if [[ $? -ne 0 ]]; then
+    echo "Can not get config file or bad config file"
+    exit
+fi
 
 tmux has-session -t $SESSION 2> /dev/null
 HAS_SESSION="$?"
@@ -121,10 +147,7 @@ then
     esac
 fi
 
-if [[ $HAS_SESSION -ne 0 ]]; then
-    get_config && init \
-    || echo "Can not get config file or bad config file"
-fi
+[ $HAS_SESSION -ne 0 ] && init
 
 tmux has-session -t $SESSION 2> /dev/null \
 && tmux at -t $SESSION
