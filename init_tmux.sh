@@ -11,8 +11,8 @@ run_cmd()
     for c in $cmd
     do
         tmux selectp -t $i
-        [ "${c:0:4}" == tmux ] && sh -c "$c -t "$SESSION"" \
-        || sh -c "tmux send-keys -t "$SESSION" $c"
+        [ "${c:0:4}" == tmux ] && sh -c "$c -t "$SESSION:"" \
+        || sh -c "tmux send-keys -t "$SESSION:" $c"
 
         let i++
     done
@@ -35,9 +35,9 @@ layout()
         [ -n "$percent" ] && p="-p $percent" || unset p
 
         if [ "$hv" == '|' ]; then
-            tmux splitw -h $p -t $SESSION
+            tmux splitw -h $p -t $SESSION:
         elif [ "$hv" == '-' ]; then
-            tmux splitw -v $p -t $SESSION
+            tmux splitw -v $p -t $SESSION:
         fi
     done
     IFS=${IFS_orig}
@@ -51,7 +51,7 @@ init()
     do
         w="${WINDOWS[$wi]}"
         [ "$has_session" == "no" ] && tmux new -s "$SESSION" -n "$w" -d \
-        || tmux neww -n "$w" -t "$SESSION"
+        || tmux neww -n "$w" -t "$SESSION":
         has_session="yes"
 
         layout "${LAYOUT[$wi]}"
