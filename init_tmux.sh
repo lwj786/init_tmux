@@ -62,41 +62,8 @@ init()
     tmux selectw -t 0
 }
 
-get_session_name()
+get_scheme()
 {
-    SESSION="main"
-
-    if head -n1 <<< $CONFIG | grep -q '\[.*\]'; then
-        SESSION=`head -n1 <<< $CONFIG | grep -o '\[.*\]'`
-        SESSION=${SESSION%]}
-        SESSION=${SESSION#[}
-
-        return 0
-    fi
-
-    return 1
-}
-
-get_config_file()
-{
-    for CONFIG_FILE in {.,$HOME}/{,.}init_tmux.config
-    do
-	[ -f "$CONFIG_FILE" ] && return 0
-    done
-
-    return 1
-}
-
-get_config()
-{
-    get_config_file \
-    && CONFIG=`< $CONFIG_FILE` || return 1
-
-    get_session_name \
-    && CONFIG=`sed '1d' <<< $CONFIG`
-
-    CONFIG=`sed 's/\s*:\s*/:/g' <<< $CONFIG`
-
     i=1
     for config_item in WINDOWS LAYOUT COMMAND
     do
@@ -112,6 +79,52 @@ get_config()
 
         IFS=${IFS_orig}
     done
+}
+
+get_session_name()
+{
+    SESSION="main"
+
+    if head -n1 <<< $CONFIG | grep -q '\[.*\]'; then
+        SESSION=`head -n1 <<< $CONFIG | grep -o '\[.*\]'`
+        SESSION=${SESSION%]}
+        SESSION=${SESSION#[}
+
+        return 0
+    fi
+
+    return 1
+}
+
+config_preprocess()
+{
+    CONFIG=$RAW_CONFIG
+
+    CONFIG=`sed 's/#.*$//g; /^\s*$/d' <<< $CONFIG`
+    CONFIG=`sed 's/\s*:\s*/:/g; s/\s*;\s*/;/g; s/\s*=\s*/=/g' <<< $CONFIG`
+}
+
+get_config_file()
+{
+    for CONFIG_FILE in {.,$HOME}/{,.}init_tmux.config
+    do
+	[ -f "$CONFIG_FILE" ] && return 0
+    done
+
+    return 1
+}
+
+get_config()
+{
+    get_config_file \
+    && RAW_CONFIG=`< $CONFIG_FILE` || return 1
+
+    config_preprocess
+
+    get_session_name \
+    && CONFIG=`sed '1d' <<< $CONFIG`
+
+    get_scheme
 }
 
 
