@@ -66,12 +66,15 @@ get_session_name()
 {
     SESSION="main"
 
-    if head -n1 $CONFIG_FILE | grep -q '\[.*\]'; then
-        SESSION=`head -n1 $CONFIG_FILE | grep -o '\[.*\]'`
-
+    if head -n1 <<< $CONFIG | grep -q '\[.*\]'; then
+        SESSION=`head -n1 <<< $CONFIG | grep -o '\[.*\]'`
         SESSION=${SESSION%]}
         SESSION=${SESSION#[}
+
+        return 0
     fi
+
+    return 1
 }
 
 get_config_file()
@@ -86,40 +89,29 @@ get_config_file()
 
 get_config()
 {
-    get_config_file || return 1
+    get_config_file \
+    && CONFIG=`< $CONFIG_FILE` || return 1
 
-    get_session_name
+    get_session_name \
+    && CONFIG=`sed '1d' <<< $CONFIG`
 
-    if head -n1 $CONFIG_FILE | grep -q '\[.*\]'; then
-        sed '1d' $CONFIG_FILE | tr -s ' ' > /tmp/$CONFIG_FILE.$$
-    else
-        tr -s ' ' < $CONFIG_FILE > /tmp/$CONFIG_FILE.$$
-    fi
+    CONFIG=`sed 's/\s*:\s*/:/g' <<< $CONFIG`
 
-    IFS=$'\n'
-    i=0
-    for w in `awk -F ' : ' '{print $1}' /tmp/$CONFIG_FILE.$$`
+    i=1
+    for config_item in WINDOWS LAYOUT COMMAND
     do
-        WINDOWS[$i]="$w"
-        let i++
-    done
+        IFS=$'\n'
 
-    i=0
-    for l in `awk -F ' : ' '{print $2}' /tmp/$CONFIG_FILE.$$`
-    do
-        LAYOUT[$i]="$l"
+        j=0
+        for sub_item in `awk -F: "{print $"$i"}" <<< $CONFIG`
+        do
+            declare -g "$config_item"[$j]="$sub_item"
+            let j++
+        done
         let i++
-    done
 
-    i=0
-    for c in `awk -F ' : ' '{print $3}' /tmp/$CONFIG_FILE.$$`
-    do
-        COMMAND[$i]="$c"
-        let i++
+        IFS=${IFS_orig}
     done
-    IFS=${IFS_orig}
-
-    rm /tmp/$CONFIG_FILE.$$
 }
 
 
