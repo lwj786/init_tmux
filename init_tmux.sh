@@ -10,7 +10,7 @@ run_cmd()
     i=0
     for c in $cmd
     do
-        tmux selectp -t $i
+        tmux selectp -t .$i
         [ "${c:0:4}" == tmux ] && sh -c "$c -t "$SESSION:"" \
         || sh -c "tmux send-keys -t "$SESSION:" $c"
 
@@ -18,7 +18,7 @@ run_cmd()
     done
     IFS=${IFS_orig}
 
-    tmux selectp -t 0
+    tmux selectp -t .0
 }
 
 layout()
