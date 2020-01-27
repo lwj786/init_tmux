@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/env bash
 
 IFS_orig=${IFS}
 
@@ -101,7 +101,7 @@ config_preprocess()
     CONFIG=$RAW_CONFIG
 
     CONFIG=`sed 's/#.*$//g; /^\s*$/d' <<< $CONFIG`
-    CONFIG=`sed 's/\s*:\s*/:/g; s/\s*;\s*/;/g; s/\s*=\s*/=/g' <<< $CONFIG`
+    CONFIG=`sed 's/[[:blank:]]*:[[:blank:]]*/:/g; s/[[:blank:]]*;[[:blank:]]*/;/g; s/[[:blank:]]*=[[:blank:]]*/=/g' <<< $CONFIG`
 }
 
 get_config_file()
